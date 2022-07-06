@@ -30,12 +30,9 @@ uint offset = pio_add_program(pio, &st7789_lcd_program);
 #define FULLH   240
 #define SCR     (FULLW*FULLH)
 
-  uint16_t col[SCR];
-
-uint16_t RGB565( byte R, byte G, byte B){ return ( ((R & 0xF8) << 8) | ((G & 0xFC) << 3) | (B >> 3) );}
-
 #define ITER  5000
 
+  uint16_t col[SCR];
   uint16_t image;
   uint16_t grid[WIDTH][HEIGHT]; 
   int state[8];
@@ -240,16 +237,16 @@ void loop(){
     
     for (int x = 0; x < WIDTH; x++){
     
-      if(grid[x][y] == 1) image = RGB565(0,0,0);
+      if(grid[x][y] == 1) image = BLACK;
       if(grid[x][y] >= 100 && grid[x][y] < 1000){
         q = grid[x][y]/100;
-        if(q == 1) image = RGB565(0,0,255);
-        if(q == 2) image = RGB565(0,255,0);
-        if(q == 3) image = RGB565(0,255,255);
-        if(q == 4) image = RGB565(255,0,0);
-        if(q == 5) image = RGB565(255,0,255);
-        if(q == 6) image = RGB565(255,255,0);
-        if(q == 7) image = RGB565(255,255,255);
+        if(q == 1) image = BLUE;
+        if(q == 2) image = YELLOW;
+        if(q == 3) image = RED;
+        if(q == 4) image = MAGENTA;
+        if(q == 5) image = GREEN;
+        if(q == 6) image = CYAN;
+        if(q == 7) image = WHITE;
       
         col[((2*x)+(2*y)*FULLW)] = image;
       
