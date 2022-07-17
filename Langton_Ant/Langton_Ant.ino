@@ -30,9 +30,8 @@ uint offset = pio_add_program(pio, &st7789_lcd_program);
 
 #define ITER    200
 
-  uint16_t col[SCR];
   uint16_t image;
-  bool state[WIDTH][HEIGHT];
+  bool state[SCR];
   int antLoc[2];
   int antDirection;
 
@@ -112,13 +111,7 @@ static inline void seed_random_from_rosc(){
 
 void rndrule(){
 
-  memset(col, 0, 2*SCR);
-
-  for(int y = 0; y < HEIGHT; y++){
-
-    for(int x = 0; x < WIDTH; x++) state[x][y] = 0;
-    
-  }
+  memset(state, 0, SCR);
 
   antDirection = 1 + rand()%4;
   antLoc[0] = rand()%WIDTH;
@@ -158,11 +151,11 @@ void updateScene(){
 
   moveForward();
 
-  if (state[antLoc[0]][antLoc[1]] == 0){
-    state[antLoc[0]][antLoc[1]] = 1;
+  if (state[antLoc[0]+antLoc[1]*WIDTH] == 0){
+    state[antLoc[0]+antLoc[1]*WIDTH] = 1;
     turnRight();
   } else {
-    state[antLoc[0]][antLoc[1]] = 0;
+    state[antLoc[0]+antLoc[1]*WIDTH] = 0;
     turnLeft();
   }
 
@@ -204,18 +197,13 @@ void loop() {
 
   for(int i = 0; i < ITER; i++) updateScene();
 
-  for (int y = 0; y < HEIGHT; y++) {
-
-    for (int x = 0; x < WIDTH; x++) {
+  for (int i = 0; i < SCR; i++) {
  
-      if(state[x][y] == 1) col[x+y*WIDTH] = WHITE;
-      else col[x+y*WIDTH] = BLACK;
-
-      image = col[x+y*WIDTH];
-      st7789_lcd_put(pio, sm, image >> 8);
-      st7789_lcd_put(pio, sm, image & 0xff);
+    if(state[i] == 1) image = WHITE;
+    else image = BLACK;
       
-    }
+    st7789_lcd_put(pio, sm, image >> 8);
+    st7789_lcd_put(pio, sm, image & 0xff);
 
   }
  
