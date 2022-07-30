@@ -1,4 +1,4 @@
-// Physarum growth //
+// Worms cellular automata //
 
 #include "hardware/structs/rosc.h"
 #include "st7789_lcd.pio.h"
@@ -28,13 +28,14 @@ uint offset = pio_add_program(pio, &st7789_lcd_program);
 #define HEIGHT  240
 #define SCR     WIDTH*HEIGHT
 
-#define ITER  40000
-#define NUM   8
+#define NUMANTS 5
+#define ITER    75
 
-  uint16_t grid[WIDTH][HEIGHT]; 
-  uint16_t coll[NUM];
-  uint16_t image;
-  int t, q;
+  uint16_t col[SCR];
+  uint16_t coll[NUMANTS];
+  int x[NUMANTS];
+  int y[NUMANTS];
+  int antsdir[NUMANTS];
 
 #define SERIAL_CLK_DIV 1.f
 
@@ -110,88 +111,22 @@ static inline void seed_random_from_rosc(){
   srand(random);
 }
 
-void rndseed(){
+void rndrule(){
 
-  for (int i = 0; i < NUM; i++) coll[i] = rand();
+  memset(col, 0, 2*SCR);
 
-  for (int y = 0; y < HEIGHT; y++){  
-    for (int x = 0; x < WIDTH; x++){
-      
-      if(x == 0 || x == 1 || x == WIDTH-2 || x == WIDTH-1 || y == 0 || y == 1 || y == HEIGHT-2 || y == HEIGHT-1) grid[x][y] = 1;
-      else grid[x][y] = 0;
-
-    }
-  }
+  for(int i = 0; i < NUMANTS; i++){
   
-  for (int i = 1; i < NUM; i++){
+    x[i] = rand()%WIDTH;
+    y[i] = rand()%HEIGHT;
+    antsdir[i] = rand()%8;
+    coll[i] = rand();
     
-    int x = 2 * (5 + rand()%(WIDTH/2)-5);
-    int y = 2 * (5 + rand()%(HEIGHT/2)-5);
-    if(grid[x][y] == 0) grid[x][y] = 1000+(i*100);
-
   }
-  
+
 }
 
-void nextstep(){
-
-  for (int i = 0; i < ITER; i++){
-  
-    int x = 2 * (1 + rand()%(WIDTH/2)-1);
-    int y = 2 * (1 + rand()%(HEIGHT/2)-1);
-    
-    if(grid[x][y] >= 100 && grid[x][y] < 1000){
-      
-      q = grid[x][y]/100;
-      int p = grid[x][y] - (q*100);
-      
-      if(p < 30){
-        
-        t = 1 + rand()%5;
-        if(t == 1 && grid[x+2][y] == 0){ grid[x+2][y] = q*100; grid[x+1][y] = q*100; } 
-        if(t == 2 && grid[x][y+2] == 0){ grid[x][y+2] = q*100; grid[x][y+1] = q*100; } 
-        if(t == 3 && grid[x-2][y] == 0){ grid[x-2][y] = q*100; grid[x-1][y] = q*100; } 
-        if(t == 4 && grid[x][y-2] == 0){ grid[x][y-2] = q*100; grid[x][y-1] = q*100; } 
-        grid[x][y] = grid[x][y] + 1;
-        
-      } else {
-        
-        t = 0;
-        if(grid[x+1][y] > 1) t = t + 1;
-        if(grid[x][y+1] > 1) t = t + 1;
-        if(grid[x-1][y] > 1) t = t + 1;
-        if(grid[x][y-1] > 1) t = t + 1;
-        if(t <= 1){
-          grid[x][y] = 9100;
-          grid[x+1][y] = 0;
-          grid[x][y+1] = 0;
-          grid[x-1][y] = 0;
-          grid[x][y-1] = 0; 
-        }
-      }      
-    }
-    
-    if(grid[x][y] >= 1000 && grid[x][y] < 2000){
-      
-      q = (grid[x][y]/100)-10;
-      if(grid[x+2][y] == 0){ grid[x+2][y] = q*100; grid[x+1][y] = q*100; }
-      if(grid[x][y+2] == 0){ grid[x][y+2] = q*100; grid[x][y+1] = q*100; }
-      if(grid[x-2][y] == 0){ grid[x-2][y] = q*100; grid[x-1][y] = q*100; }
-      if(grid[x][y-2] == 0){ grid[x][y-2] = q*100; grid[x][y-1] = q*100; }
-    
-    }
-    
-    if(grid[x][y] >= 9000){
-      
-      grid[x][y] = grid[x][y] - 1;
-      if(grid[x][y] < 9000) grid[x][y] = 0;
-    
-    }
-  }
-  
-}
-
-void setup(){
+void setup() {
 
   st7789_lcd_program_init(pio, sm, offset, PIN_DIN, PIN_CLK, SERIAL_CLK_DIV);
 
@@ -213,32 +148,54 @@ void setup(){
   gpio_pull_up(KEY_A);
 
   seed_random_from_rosc();
-  
-  rndseed();
+
+  rndrule();
   
 }
 
 
-void loop(){
+void loop() {
 
-  if (gpio_get(KEY_A) == false) rndseed();
+  if (gpio_get(KEY_A) == false) rndrule();
   
   st7789_start_pixels(pio, sm);
 
-  nextstep();
-
-  for (int y = 0; y < HEIGHT; y++){  
-    for (int x = 0; x < WIDTH; x++){
+  for(int k = 0; k < ITER; k++){
+  
+    for(int i = 0; i < NUMANTS; i++){
     
-      if(grid[x][y] >= 100 && grid[x][y] < 1000){
-        q = (grid[x][y]/100)%NUM;
-        image = coll[q];    
-      } else image = BLACK;
+      if (col[x[i]+WIDTH*y[i]] > BLACK){ antsdir[i] = antsdir[i] - 1; col[x[i]+WIDTH*y[i]] = BLACK; }
+      else { antsdir[i] = antsdir[i] + 1; col[x[i]+WIDTH*y[i]] = coll[i]; }
 
-      st7789_lcd_put(pio, sm, image >> 8);
-      st7789_lcd_put(pio, sm, image & 0xff);
-      
+      if (antsdir[i] > 7) antsdir[i] = 0;   
+      if (antsdir[i] < 0) antsdir[i] = 7;
+    
+      switch(antsdir[i]){
+        case 0: y[i]--; break;
+        case 1: y[i]--; x[i]++; break;
+        case 2: x[i]++; break;
+        case 3: x[i]++; y[i]++; break;
+        case 4: y[i]++; break;
+        case 5: y[i]++; x[i]--; break;
+        case 6: x[i]--; break;
+        case 7: x[i]--; y[i]--; break;
+      }
+    
+      if (x[i] > WIDTH-1) x[i] = 0;
+      if (x[i] < 0) x[i] = WIDTH-1;
+      if (y[i] > HEIGHT-1) y[i] = 0;
+      if (y[i] < 0) y[i] = HEIGHT-1;
+    
     }
+    
   }
 
+  for (int i = 0; i < SCR; i++){
+ 
+      uint16_t image = col[i];
+      st7789_lcd_put(pio, sm, image >> 8);
+      st7789_lcd_put(pio, sm, image & 0xff);
+
+  }
+ 
 }
