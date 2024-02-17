@@ -1,4 +1,4 @@
-// Star-Wars cellular automata //
+// Star-Wars cellular automata - centered //
 
 #include "hardware/structs/rosc.h"
 #include "st7789_lcd.pio.h"
@@ -41,6 +41,7 @@ uint offset = pio_add_program(pio, &st7789_lcd_program);
   uint8_t next[SCR];
   uint8_t alive_counts[SCR];
   uint8_t swap[SCR];
+  uint8_t gridpix;
 
 #define SERIAL_CLK_DIV 1.f
 
@@ -122,8 +123,14 @@ void rndrule(){
   memset(current, 0, sizeof(current));
   memset(next, 0, sizeof(next));
   memset(alive_counts, 0, sizeof(alive_counts));
+
+  gridpix = 4 + rand() % (WIDTH/3);
+
+  for (int y = (HEIGHT/2)-gridpix; y < (HEIGHT/2)+gridpix; y=y+2) {
   
-  for (int y = 0; y < HEIGHT; y++) { for (int x = 0; x < WIDTH; x++) current[x+y*WIDTH] = (rand()%100) < 20 ? ALIVE : DEAD; }
+    for (int x = (WIDTH/2)-gridpix; x < (WIDTH/2)+gridpix; x=x+2) current[x+y*WIDTH] = ALIVE;
+ 
+  } 
 
 }
 
